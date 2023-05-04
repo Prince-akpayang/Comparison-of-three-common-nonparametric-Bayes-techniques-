@@ -1,0 +1,891 @@
+---
+title: "Comparison of some non-parametric density estimation techniques in ststistics"
+author: "Etini Akpayang"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+bibliography: /cloud/project/references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+
+```
+
+```{=tex}
+\pagebreak
+\tableofcontents
+\pagebreak
+```
+\large
+\section{Introduction}
+
+\indent In statistical analysis since time immemorial when inference about a sample is to be made the distribution and of such sample and its parameters is key, but various samples in reality that the process is considered to not follow any known or particularly unique distribution (probability mass function or probability density function) and hence makes this kind of processes difficult to model it. Hence the need for the branch of statistics which does not depend on the parameters of probability distributions to make inferences on samples that may arise from this kind of process, and this branch of statistics is uniquely known as the \textbf{non-parameteric statistics} which is sometimes referred to a \textbf{distribution free technique}.
+
+\indent Since this samples are believed to be distribution free there is still need to model this data so inferences can be made which brings about the non-parametric models,  the unique thing about this processes are they are not constraint by conditions, they typically grow in size to accomodate any complexity of the data so as to model them better. Examples of this non-parametric models used in this study are
+\begin{itemize}
+\item The histogram
+\item The kernel density
+\item The logspline density
+\end{itemize}
+
+\section{Data description}
+\indent In order to conduct this comparison successfully we opt for a data where we already know thwe parameters and then assume  it to be distribution free so as to adopt the above mentioned techniques to estimate the samples to see how they perform in estimating the initial density function used in obtaining the samples.
+\indent This study will simulate samples from two distributions to study the performances of this model. The first sample that we will consider is generated using a Normal (Gausian) distribution with mean of 5 and standard deviation of 1, this data is expected to be unimodal and we would use the three models to try to estimate the density of this dataset for a large and small sample respectively.
+
+The first 20 points of the samples are displayed below for the small and large respectively.
+
+```{r , echo=FALSE}
+set.seed(1000)
+# Set up
+library(logspline)
+
+################# Small sample size
+# Generate 100 data from normal distribution
+data_norms = rnorm(100, 5, 1)
+Normal_small_sample=head(data_norms,20)
+Normal_small_sample
+################# Large sample size
+# Generate 1000 data from normal distribution
+data_norml = rnorm(1000, 5, 1)
+Normal_large_sample=head(data_norml,20)
+Normal_large_sample
+```
+
+
+Similarly we will consider samples generated using a Mixed Normal (Gaussian) distribution with means of 5 and 9 and standard deviation of 1 for the both models, this data is expected to be multimodal and we would use the three models to try to estimate the density of this data set for a large and small sample respectively.
+
+The first 20 points of the samples are displayed below for the small and large respectively. 
+```{r , message=FALSE, echo=FALSE}
+set.seed(1000)
+# Set up
+install.packages("EnvStats")
+library(EnvStats)
+library(logspline)
+
+################# small sample size
+# Generate 100 data from mixture of normal distributions
+mixnorm_datas = rnormMix(100, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+mixormal_small_sample=head(mixnorm_datas,20)
+mixormal_small_sample
+################# Large sample size
+# Generate 1000 data from mixture of normal distributions
+mixnorm_datal = rnormMix(1000, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+mixnormal_large_sample=head(mixnorm_datal,20)
+mixnormal_large_sample
+```
+
+
+\section{Statement of Problem and Aim}
+Given the two samples above we assume that the are distribution free and intend to estimate their densities assuming the distribution free techniques.
+
+\textbf{Aim:} Therefore the aim of this report is to estimate the densities of the samples above and access the performances of the competing estimators and it would be achieved through the following objectives;
+
+\begin{itemize}
+\item[i] Fit the data using the 3 models which are: the histogram, the kernel density and the logspline density models
+\item[ii] Plot the curves for the densities and compare their performances based on the plots obtained
+\item[iii] Carry out a simulation study to obtain the estimate of this samples and compare the estimators with the aid of the integrated squared error function.
+\end{itemize}
+
+\section{Methodology}
+This section is concerned with the analysis of the samples earlier discussed using the histogram model, the kernel density model and the logsline density model.
+
+\subsection{The Histogram}
+This is the most common and simplest non-parametric approach to model estimation in existence. The histogram is a type of bar graph that establishes the density model by using a set of contiguous intervals, named bins, to represent a probability distribution. The area of each bin is proportional to the corresponding frequency within the interval or width of the bin.\footnote{\cite{Enc2018}}
+
+The histogram model can be constructed as follows:
+\begin{itemize}
+\item Suppose that the interval $[x_L, x_H]$ is partitioned into the number of B bins. Then, the width of each bin b is calculated as b = $[x_L, x_H]/B$.
+
+\item Count the total number of observations ni that fall into each bin.
+
+\item The relative frequency within the bin width b, proportional to its probability, is estimated by $h_ib = n_i/N$, where $\sum\limits_{i=1}^B n_i =N$ and $h_i$ denotes the height of each bin.
+
+\item Plot a bar over each bin with height $h_i$ and width b to make the histogram graph with the estimated density as $\hat{f}(x)=n_i/bN$ , $x \in [x_L, x_H]$.
+
+In order to accurately estimate the probability density, the width of each bin should be carefully selected. If the number of bins is too small, the histogram will become too rough. However, if the histogram has too many bins, then the histogram will be over smoothed, and quite a few bin regions of zero probability could be introduced.
+\end{itemize}
+
+\subsection{Kernel Density}
+This is a non-parametric way to estimate the probability density function of a random variable. Kernel density estimation is a fundamental data smoothing problem where inferences about the population are made, based on a finite data sample. In some fields such as signal processing and econometrics it is also termed the Parzen–Rosenblatt window method, after Emanuel Parzen and Murray Rosenblatt, who are usually credited with independently creating it in its current form. \footnote{\cite{parzen1962estimation}}
+
+The mathematical function for this method say given a sample say $X_i,..., X_n \sim f$ is defined as;
+\[  {\hat{f}}=\dfrac{1}{n}\sum\limits_{i=1}^n K_h(x-X_i) \]
+Where $K_h(.) = K(.)/h$, K is the density (Kernel), and h > 0 is a parameter controlling smoothness of the estimate (bandwith)
+
+\subsection{Logspline Density}
+The B-spline is *please look up literature and write about this method am not too familiar with the log spline, I believe it is a modification of the B-spline ie Basic spline anything up to 4 or 5 lines would do.*
+
+
+\section{Computation}
+We would use the functions in R to estimate the density of the earlier presented samples 
+
+\subsection{Normal density curve estimation}
+First we consider the small sample from the normal distribution we plot the results of the estimators as given below;
+
+
+```{r, echo=FALSE, message=FALSE}
+set.seed(1000)
+# Set up
+library(logspline)
+
+################# Small sample size
+# Generate 100 data from normal distribution
+data_norm = rnorm(100, 5, 1)
+
+# Construct the correct density of the normal distribution
+x = seq(2, 9, length = 1000)
+y = dnorm(x, 5, 1)
+
+# Results from logspline density estimation
+fit = logspline(data_norm)
+# Here (-250:250)/10 means the vector of quantiles
+dd = dlogspline((-250:250)/10, fit)
+
+# Draw the correct curve and curves using the three methods mentioned in report
+# Histogram
+hist(data_norm, col = "white", xlim = c(2,9), ylim = c(0,0.5), xlab = "x", cex.main = 1.0,
+     main = "Normal distribution: Density estimation and real density", freq = F)
+# Correct density curve
+lines(x, y, lwd=2, xlim = c(2,9), ylim = c(0,0.5), col = "red", lty = 2)
+# Logspline density estimation
+lines((-250:250)/10, dd, xlim = c(2,9),ylim = c(0,0.5), col = "green", type = "l")
+# Kernel density estimation
+lines(density(data_norm, kernel = "gaussian", bw = "nrd0"), col = "blue")
+text(2.5, 0.4, "n=100")
+legend(7,0.4, legend = c("kernel", "logspline","real density"),
+       col=c("blue", "green", "red"), lty = c(1, 1, 2), cex = 1.0)
+
+```
+
+
+From the figure above we observe that the estimators give a curve that indeed informs that the distribution of interest is the Normal distribution but the density curve shows over estimation from the estimators as all the estimated curves are higher than the true estimate.
+
+Similarly we consider the large sample from the normal distribution, we plot the results of the estimators as given below;
+
+
+```{r, echo=FALSE, message=FALSE}
+set.seed(1000)
+# Set up
+library(logspline)
+
+################# Large sample size
+# Generate 1000 data from normal distribution
+data_norm = rnorm(1000, 5, 1)
+
+# Construct the correct density of the normal distribution
+x = seq(2, 9, length = 1000)
+y = dnorm(x, 5, 1)
+
+# Results from logspline density estimation
+fit = logspline(data_norm)
+# Here (-250:250)/10 means the vector of quantiles
+dd = dlogspline((-250:250)/10, fit)
+
+# Draw the correct curve and curves using the three methods mentioned in report
+# Histogram
+hist(data_norm, col = "white", xlim = c(2, 9), ylim = c(0, 0.5), xlab = "x", cex.main = 1.0,
+     main = "Normal distribution: Density estimation and real density", freq = F)
+# Correct density curve
+lines(x, y, lwd = 2, xlim = c(2, 9), ylim = c(0, 0.5), col = "red", lty = 2)
+# Logspline density estimation
+lines((-250:250)/10, dd, xlim = c(2, 9), ylim = c(0, 0.5), col = "green", type = "l")
+# Kernel density estimation
+lines(density(data_norm, kernel = "gaussian", bw = "nrd0"), col = "blue")
+text(2.5, 0.4, "n=1000")
+legend(7,0.4, legend = c("kernel", "logspline","real density"),
+       col = c("blue", "green","red"), lty = c(1, 1, 2), cex = 1.0)
+
+```
+
+
+From the figure above we observe that the estimators fit the sample from curve very similar to that of the true density curve, so we can infer that because of the large sample size the margin of error has greatly been reduced and hence the results more accurate irrespective of the model.
+
+
+\subsection{Mix-normal density curve estimation}
+Now we use the same curve fitting models to estimate the curve for the second sample, first when the sample size is small we obtain the result as follows;
+
+
+```{r,message=FALSE,echo=FALSE}
+# small sample mixnormal
+set.seed(1000)
+# Set up
+install.packages("EnvStats")
+library(EnvStats)
+library(logspline)
+
+################# small sample size
+# Generate 100 data from mixture of normal distributions
+mixnorm_data = rnormMix(100, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+
+# Construct the correct density of the normal distribution
+x = seq(0, 30, length = 1000)
+y = 0.5*dnorm(x, 5, 1) + 0.5*dnorm(x, 9, 1) 
+
+# Results from logspline density estimation
+fit = logspline(mixnorm_data)
+# Here (-250:250)/10 means the vector of quantiles
+dd = dlogspline((-250:250)/10, fit)
+
+# Draw the correct curve and curves using the three methods mentioned in report
+# Histogram
+hist(mixnorm_data, col = "white", xlim = c(1, 13), ylim = c(0, 0.3), xlab = "x", cex.main = 1.0,
+     main = "Mixture of normal distribution: Density estimation and real density", freq = F)
+# Correct density curve
+lines(x, y, lwd = 2, xlim = c(1, 13), ylim = c(0, 0.3), col = "red", lty = 2)
+# Logspline density estimation
+lines((-250:250)/10, dd, xlim = c(1, 13), ylim = c(0, 0.3), col = "green", type = "l")
+# Kernel density estimation
+lines(density(mixnorm_data, kernel = "gaussian", bw = "nrd0"), col = "blue")
+# Add comment
+text(2, 0.25, "n=100")
+# Add the legend
+legend(10, 0.3, legend = c("kernel", "logspline","real density"),
+       col=c("blue", "green", "red"), lty = c(1, 1, 2), cex = 1.0)
+```
+
+
+Again as we observed when this models were used for the first sample we get results that are not consistent with each other, some over fitted curve, other under fitted. But in all this there is the knowledge that the density function of interest is bi-modal and all the models estimated clearly point this out.
+
+
+Again we estimate for when the sample size is large and obtain the figure below;
+
+```{r,message=FALSE,echo=FALSE}
+# large sample mixnormal
+set.seed(1000)
+# Set up
+install.packages("EnvStats")
+library(EnvStats)
+library(logspline)
+
+################# Large sample size
+# Generate 1000 data from mixture of normal distributions
+mixnorm_data = rnormMix(1000, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+
+# Construct the correct density of the normal distribution
+x = seq(0, 30, length = 1000)
+y = 0.5*dnorm(x, 5, 1) + 0.5*dnorm(x, 9, 1) 
+
+# Results from logspline density estimation
+fit = logspline(mixnorm_data)
+# Here (-250:250)/10 means the vector of quantiles
+dd = dlogspline((-250:250)/10, fit)
+
+# Draw the correct curve and curves using the three methods mentioned in report
+# Histogram
+hist(mixnorm_data, col = "white", xlim = c(1, 13), ylim = c(0, 0.3), xlab = "x", cex.main = 1.0,
+     main = "Mixture of normal distribution: Density estimation and real density", freq = F)
+# Correct density curve
+lines(x, y, lwd = 2, xlim = c(1, 13), ylim = c(0, 0.3), col = "red", lty = 2)
+# Logspline density estimation
+lines((-250:250)/10, dd, xlim = c(1, 13), ylim = c(0, 0.3), col = "green", type = "l")
+# Kernel density estimation
+lines(density(mixnorm_data, kernel = "gaussian", bw = "nrd0"), col = "blue")
+# Add comment
+text(2, 0.25, "n=1000")
+# Add the legend
+legend(10, 0.3, legend = c("kernel", "logspline","real density"),
+       col=c("blue", "green", "red"), lty = c(1, 1, 2), cex = 1.0)
+
+```
+
+Even with the large samples there no precise estimator though they came close to obtaining the true curve, they still seemed a bit off.
+
+\subsection{Observation}
+While this models show that they can handle distribution free problems very well there is still room for improvement for the models to be efficient, such as not using the rule of thumb for the smoothing constant as in the kernel density estimator, or restricting the number of breaks when considering the histogram or fixing the quantile range for the logspline model but be flexible by estimating the best estimate for the bandwidth parameter as it would lead towards more precise outputs.
+
+
+\section{Simulation Study}
+In this section we will consider generating a sample using the estimators specifically adopting the monte carlo technique.
+
+We would generate 3 samples each of size 250, 500 and 1000 respectively and obtain the integrated squared errors for the estimator for each sample 
+
+\subsection{Normal density}
+The Result is as follows
+
+
+```{r, message=FALSE, echo=FALSE}
+# Set up
+library(sfsmisc)
+library(logspline)
+library(histogram)
+library(EnvStats)
+
+################################### Kernel
+# n=250: ISE=0.003212807
+# n=500: ISE=0.001881695
+# n=1000: ISE=0.001072509
+################################### Histogram
+# n=250: ISE=0.01623037
+# n=500: ISE=0.009146174
+# n=1000: ISE=0.005477232
+################################### Logspline
+# n=250: ISE=0.006789065
+# n=500: ISE=0.003297742
+# n=1000: ISE=0.001477493
+
+print("For sample size fixed at 250 ISE is given as follows for the kernel,")
+print(" histogram and logspline models respectively")
+
+################################################################## Sample size 250
+set.seed(33)
+################################### Kernel
+# Set the sample size
+n1 = 250
+# Set a empty container
+ISE1_n1 = numeric()
+# Kernel density estimation
+for(i in 1:1000){
+  # Generate n1=250 data from normal distribution
+  data_norm = rnorm(n1, 5, 1)
+  
+  # Kernel density estimation
+  kernel_estimation_norm = density(data_norm, kernel = "gaussian")
+  
+  # Kernel density estimation ISE 
+  ISE1_n1[i] = integrate.xy(x = kernel_estimation_norm$x, (kernel_estimation_norm$y - dnorm(kernel_estimation_norm$x, 5, 1))^2)
+}
+
+
+# Calculate the mean of the ISE
+Kernel.mc.simulation.ISE1<-mean(ISE1_n1)
+Kernel.mc.simulation.ISE1
+
+
+################################### Histogram
+# Set the sample size
+n1 = 250
+# Set a empty container
+ISE2_n1 = numeric()
+# Histogram density estimation
+for(i in 1:1000){
+  # Generate n1=250 data from normal distribution
+  data_norm = rnorm(n1, 5, 1)
+  
+  # Histogram
+  histogram_estimation_norm = histogram(data_norm, type="regular", penalty="cv", freq = FALSE, 
+                                        control = list(cvformula = 1),verbose=F, plot = FALSE)
+  
+  # Histogram ISE 
+  # Sort the data from small to large
+  ordered_x = sort(data_norm)
+  func = dnorm(ordered_x, 5, 1)
+  func_est = numeric()
+  for(j in 1:length(histogram_estimation_norm$counts)){
+    func_est = c(func_est, rep(histogram_estimation_norm$density[j], each = histogram_estimation_norm$counts[j]))
+  }
+  ISE2_n1[i] = integrate.xy(ordered_x, (func_est - func)^2)
+}
+
+# Calculate the mean of the ISE
+Histogram.mc.simulation.ISE1<-mean(ISE2_n1)
+Histogram.mc.simulation.ISE1
+
+
+################################### Logspline
+# Set the sample size
+n1 = 250
+# Set a empty container
+ISE3_n1 = numeric()
+# Logspline density estimation
+for(i in 1:1000){ 
+  # Generate n1=250 data from normal distribution
+  data_norm = rnorm(n1, 5, 1)
+  
+  # Logspline 
+  logspline_estimation_norm = logspline(data_norm)
+  
+  # Logspline density estimation ISE 
+  y = dlogspline(data_norm, logspline_estimation_norm)
+  ISE3_n1[i] = integrate.xy(data_norm, (y - dnorm(data_norm, 5, 1))^2)  
+}
+
+# Calculate the mean of the ISE
+logspline.mc.simulation.ISE1<-mean(ISE3_n1)
+logspline.mc.simulation.ISE1
+
+print("For sample size fixed at 500 ISE is given as follows for the kernel,")
+print(" histogram and logspline models respectively")
+
+################################################################## Sample size 500
+################################### Kernel
+# Set the sample size
+n2 = 500
+# Set a empty container
+ISE1_n2 = numeric()
+# Kernel density estimation
+for(i in 1:1000){
+  # Generate n1=500 data from normal distribution
+  data_norm = rnorm(n2, 5, 1)
+  
+  # Kernel density estimation
+  kernel_estimation_norm = density(data_norm, kernel = "gaussian")
+  
+  # Kernel density estimation ISE 
+  ISE1_n2[i] = integrate.xy(x = kernel_estimation_norm$x, (kernel_estimation_norm$y - dnorm(kernel_estimation_norm$x, 5, 1))^2)
+}
+
+# Calculate the mean of the ISE
+kernel.mc.simulation.ISE2<-mean(ISE1_n2)
+kernel.mc.simulation.ISE2
+
+
+################################### Histogram
+# Set the sample size
+n2 = 500
+# Set a empty container
+ISE2_n2 = numeric()
+# Histogram density estimation
+for(i in 1:1000){
+  # Generate n1=250 data from normal distribution
+  data_norm = rnorm(n2, 5, 1)
+  
+  # Histogram
+  histogram_estimation_norm = histogram(data_norm, type="regular", penalty="cv", freq = FALSE, 
+                                        control = list(cvformula = 1), plot = FALSE,verbose=F)
+  
+  # Histogram ISE 
+  # Sort the data from small to large
+  ordered_x = sort(data_norm)
+  func = dnorm(ordered_x, 5, 1)
+  func_est = numeric()
+  for(j in 1:length(histogram_estimation_norm$counts)){
+    func_est = c(func_est, rep(histogram_estimation_norm$density[j], each = histogram_estimation_norm$counts[j]))
+  }
+  ISE2_n2[i] = integrate.xy(ordered_x, (func_est - func)^2)
+}
+
+# Calculate the mean of the ISE
+histogram.mc.simulation.ISE2<-mean(ISE2_n2)
+histogram.mc.simulation.ISE2
+
+
+################################### Logspline
+# Set the sample size
+n2 = 500
+# Set a empty container
+ISE3_n2 = numeric()
+# Logspline density estimation
+for(i in 1:1000){ 
+  # Generate n1=250 data from normal distribution
+  data_norm = rnorm(n2, 5, 1)
+  
+  # Logspline 
+  logspline_estimation_norm = logspline(data_norm)
+  
+  # Logspline density estimation ISE 
+  y = dlogspline(data_norm, logspline_estimation_norm)
+  ISE3_n2[i] = integrate.xy(data_norm, (y - dnorm(data_norm, 5, 1))^2)  
+}
+
+# Calculate the mean of the ISE
+logspline.mc.simulation.ISE2<-mean(ISE3_n2)
+logspline.mc.simulation.ISE2
+
+
+print("For sample size fixed at 1000 ISE is given as follows for the kernel,")
+print(" histogram and logspline models respectively")
+
+################################################################## Sample size 1000
+################################### Kernel
+# Set the sample size
+n3 = 1000
+# Set a empty container
+ISE1_n3 = numeric()
+# Kernel density estimation
+for(i in 1:1000){
+  # Generate n1=500 data from normal distribution
+  data_norm = rnorm(n3, 5, 1)
+  
+  # Kernel density estimation
+  kernel_estimation_norm = density(data_norm, kernel = "gaussian")
+  
+  # Kernel density estimation ISE 
+  ISE1_n3[i] = integrate.xy(x = kernel_estimation_norm$x, (kernel_estimation_norm$y - dnorm(kernel_estimation_norm$x, 5, 1))^2)
+}
+
+# Calculate the mean of the ISE
+kernel.mc.simulation.ISE3<-mean(ISE1_n3)
+kernel.mc.simulation.ISE3
+
+
+################################### Histogram
+# Set the sample size
+n3 = 1000
+# Set a empty container
+ISE2_n3 = numeric()
+# Histogram density estimation
+for(i in 1:1000){
+  # Generate n1=250 data from normal distribution
+  data_norm = rnorm(n3, 5, 1)
+  
+  # Histogram
+  histogram_estimation_norm = histogram(data_norm, type="regular", penalty="cv", freq = FALSE, 
+                                        control = list(cvformula = 1), plot = FALSE,verbose=F)
+  
+  # Histogram ISE 
+  # Sort the data from small to large
+  ordered_x = sort(data_norm)
+  func = dnorm(ordered_x, 5, 1)
+  func_est = numeric()
+  for(j in 1:length(histogram_estimation_norm$counts)){
+    func_est = c(func_est, rep(histogram_estimation_norm$density[j], each = histogram_estimation_norm$counts[j]))
+  }
+  ISE2_n3[i] = integrate.xy(ordered_x, (func_est - func)^2)
+}
+
+# Calculate the mean of the ISE
+histogram.mc.simulation.ISE3<-mean(ISE2_n3)
+histogram.mc.simulation.ISE3
+
+
+################################### Logspline
+# Set the sample size
+n3 = 1000
+# Set a empty container
+ISE3_n3 = numeric()
+# Logspline density estimation
+for(i in 1:1000){ 
+  # Generate n1=250 data from normal distribution
+  data_norm = rnorm(n3, 5, 1)
+  
+  # Logspline 
+  logspline_estimation_norm = logspline(data_norm)
+  
+  # Logspline density estimation ISE 
+  y = dlogspline(data_norm, logspline_estimation_norm)
+  ISE3_n3[i] = integrate.xy(data_norm, (y - dnorm(data_norm, 5, 1))^2)  
+}
+
+# Calculate the mean of the ISE
+logspline.mc.simulation.ISE3<-mean(ISE3_n3)
+logspline.mc.simulation.ISE3
+```
+
+```{r,echo=FALSE}
+par(mfrow=c(1,3),oma=c(0,0,2,0))
+################################### Draw a box plot for normal distribution
+df = data.frame(ISE1_n1,ISE2_n1,ISE3_n1)
+boxplot(df, col=c("skyblue1","yellow1","pink1"), 
+        names = c("n=250","n=250","n=250"),
+        pars = list(boxwex = 0.5, staplewex = 0.5, outwex = 0.5),ylim=c(0,0.02))
+legend("topright", legend = c("kernel","histogram", "logspline"),
+       col = c("skyblue1","yellow1", "pink1"), lty = c(1, 1), cex = 0.5)
+
+
+
+df = data.frame(ISE1_n2,ISE2_n2,ISE3_n2)
+boxplot(df, col=c("skyblue1","yellow1","pink1"), 
+        names = c("n=500","n=500","n=500"),
+        pars = list(boxwex = 0.5, staplewex = 0.5, outwex = 0.5),ylim=c(0,0.02))
+legend("topright", legend = c("kernel","histogram", "logspline"),
+       col = c("skyblue1","yellow1", "pink1"), lty = c(1, 1), cex = 0.5)
+
+df = data.frame(ISE1_n3,ISE2_n3,ISE3_n3)
+boxplot(df, col=c("skyblue1","yellow1","pink1"), 
+        names = c("n=1000","n=1000","n=1000"),
+        pars = list(boxwex = 0.5, staplewex = 0.5, outwex = 0.5),ylim=c(0,0.02))
+legend("topright", legend = c("kernel","histogram", "logspline"),
+       col = c("skyblue1","yellow1", "pink1"), lty = c(1, 1), cex = 0.5)
+
+
+mtext("ISE plots for the Normal data", line=0, side=3, outer=TRUE, cex=2)
+```
+
+From the integrated squared errors (ISE) we observe that for the sample size 250 the are highest and as the sample sizes increase to 500 there is a significant reduction observed and finally at sample size 1000 we still observe a significant reduction, which confirms that as the sample size increases the error associated reduces and the estimates tend to approach the true sample.
+
+And from the associated errors we can say that the kernel density estimator consistently outperform the other competitors and is closely followed by the logspline density estimator and finally the histogram. 
+
+\subsection{Mix-normal density}
+Similarly, the Result is as follows;
+
+
+```{r,echo=FALSE,message=FALSE}
+
+# Set up
+library(sfsmisc)
+library(logspline)
+library(histogram)
+library(EnvStats)
+
+################################### Kernel
+# n=250: ISE=0.00462273
+# n=500: ISE=0.00297481
+# n=1000: ISE=0.001807604
+################################### Histogram
+# n=250: ISE=0.01119321
+# n=500: ISE=0.006458962
+# n=1000: ISE=0.003959865
+################################### Logspline
+# n=250: ISE=0.005266927
+# n=500: ISE=0.002878334
+# n=1000: ISE=0.001617657
+
+print("For sample size fixed at 250 ISE is given as follows for the kernel,")
+print(" histogram and logspline models respectively")
+
+################################################################## Sample size 250
+set.seed(33)
+################################### Kernel
+# Set the sample size
+n1 = 250
+# Set a empty container
+ISE1_n1 = numeric()
+# Kernel density estimation
+for(i in 1:1000){
+  # Generate n1=250 data from mixture of normal distributions
+  data_mixturenormal = rnormMix(n1, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  
+  # Kernel density estimation
+  kernel_estimation_norm = density(data_mixturenormal, kernel = "gaussian")
+  
+  # Kernel density estimation ISE 
+  ISE1_n1[i] = integrate.xy(x = kernel_estimation_norm$x, (kernel_estimation_norm$y - dnormMix(kernel_estimation_norm$x, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5))^2)
+}
+
+# Calculate the mean of the ISE
+mean(ISE1_n1)
+
+
+
+################################### Histogram
+# Set the sample size
+n1 = 250
+# Set a empty container
+ISE2_n1 = numeric()
+# Histogram density estimation
+for(i in 1:1000){
+  # Generate n1=250 data from mixture of normal distributions
+  data_mixturenormal = rnormMix(n1, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  
+  # Histogram
+  histogram_estimation_norm = histogram(data_mixturenormal, type="regular", penalty="cv", freq = FALSE, 
+                                        control = list(cvformula = 1), plot = FALSE,verbose = F)
+  #ISE-hist
+  ordered_x = sort(data_mixturenormal)
+  func = dnormMix(ordered_x, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  func_est = numeric()
+  for(j in 1:length(histogram_estimation_norm$counts)){
+    func_est= c(func_est, rep(histogram_estimation_norm$density[j], each = histogram_estimation_norm$counts[j]))
+  }
+  ISE2_n1[i] = integrate.xy(ordered_x, (func_est - func)^2)
+}
+
+# Calculate the mean of the ISE
+mean(ISE2_n1)
+
+
+
+################################### Logspline
+# Set the sample size
+n1 = 250
+# Set a empty container
+ISE3_n1 = numeric()
+# Logspline density estimation
+for(i in 1:1000){ 
+  # Generate n1=250 data from normal distribution
+  data_mixturenormal = rnormMix(n1, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  
+  # Logspline 
+  logspline_estimation_norm = logspline(data_mixturenormal)
+  
+  # Logspline density estimation ISE 
+  func_est = dlogspline(data_mixturenormal, logspline_estimation_norm)
+  func = dnormMix(data_mixturenormal, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  ISE3_n1[i] = integrate.xy(data_mixturenormal, (func_est - func)^2)  
+}
+
+# Calculate the mean of the ISE
+mean(ISE3_n1)
+
+print("For sample size fixed at 500 ISE is given as follows for the kernel,")
+print(" histogram and logspline models respectively")
+
+
+################################################################## Sample size 500
+################################### Kernel
+# Set the sample size
+n2 = 500
+# Set a empty container
+ISE1_n2 = numeric()
+# Kernel density estimation
+for(i in 1:1000){
+  # Generate n1=250 data from mixture of normal distributions
+  data_mixturenormal = rnormMix(n2, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  
+  # Kernel density estimation
+  kernel_estimation_norm = density(data_mixturenormal, kernel = "gaussian")
+  
+  # Kernel density estimation ISE 
+  ISE1_n2[i] = integrate.xy(x = kernel_estimation_norm$x, (kernel_estimation_norm$y - dnormMix(kernel_estimation_norm$x, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5))^2)
+}
+
+# Calculate the mean of the ISE
+mean(ISE1_n2)
+
+
+
+################################### Histogram
+# Set the sample size
+n2 = 500
+# Set a empty container
+ISE2_n2 = numeric()
+# Histogram density estimation
+for(i in 1:1000){
+  # Generate n1=250 data from mixture of normal distributions
+  data_mixturenormal = rnormMix(n2, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  
+  # Histogram
+  histogram_estimation_norm = histogram(data_mixturenormal, type="regular", penalty="cv", freq = FALSE, 
+                                        control = list(cvformula = 1), plot = FALSE,verbose = F)
+  #ISE-hist
+  ordered_x = sort(data_mixturenormal)
+  func = dnormMix(ordered_x, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  func_est = numeric()
+  for(j in 1:length(histogram_estimation_norm$counts)){
+    func_est= c(func_est, rep(histogram_estimation_norm$density[j], each = histogram_estimation_norm$counts[j]))
+  }
+  ISE2_n2[i] = integrate.xy(ordered_x, (func_est - func)^2)
+}
+
+# Calculate the mean of the ISE
+mean(ISE2_n2)
+
+
+
+################################### Logspline
+# Set the sample size
+n2 = 500
+# Set a empty container
+ISE3_n2 = numeric()
+# Logspline density estimation
+for(i in 1:1000){ 
+  # Generate n1=250 data from normal distribution
+  data_mixturenormal = rnormMix(n2, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  
+  # Logspline 
+  logspline_estimation_norm = logspline(data_mixturenormal)
+  
+  # Logspline density estimation ISE 
+  func_est = dlogspline(data_mixturenormal, logspline_estimation_norm)
+  func = dnormMix(data_mixturenormal, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  ISE3_n2[i] = integrate.xy(data_mixturenormal, (func_est - func)^2)  
+}
+
+# Calculate the mean of the ISE
+mean(ISE3_n2)
+
+print("For sample size fixed at 1000 ISE is given as follows for the kernel,")
+print(" histogram and logspline models respectively")
+
+
+################################################################## Sample size 1000
+################################### Kernel
+# Set the sample size
+n3 = 1000
+# Set a empty container
+ISE1_n3 = numeric()
+# Kernel density estimation
+for(i in 1:1000){
+  # Generate n1=250 data from mixture of normal distributions
+  data_mixturenormal = rnormMix(n3, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  
+  # Kernel density estimation
+  kernel_estimation_norm = density(data_mixturenormal, kernel = "gaussian")
+  
+  # Kernel density estimation ISE 
+  ISE1_n3[i] = integrate.xy(x = kernel_estimation_norm$x, (kernel_estimation_norm$y - dnormMix(kernel_estimation_norm$x, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5))^2)
+}
+
+# Calculate the mean of the ISE
+mean(ISE1_n3)
+
+
+
+################################### Histogram
+# Set the sample size
+n3 = 1000
+# Set a empty container
+ISE2_n3 = numeric()
+# Histogram density estimation
+for(i in 1:1000){
+  # Generate n1=250 data from mixture of normal distributions
+  data_mixturenormal = rnormMix(n3, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  
+  # Histogram
+  histogram_estimation_norm = histogram(data_mixturenormal, type="regular", penalty="cv", freq = FALSE, 
+                                        control = list(cvformula = 1), plot = FALSE,verbose = F)
+  #ISE-hist
+  ordered_x = sort(data_mixturenormal)
+  func = dnormMix(ordered_x, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  func_est = numeric()
+  for(j in 1:length(histogram_estimation_norm$counts)){
+    func_est= c(func_est, rep(histogram_estimation_norm$density[j], each = histogram_estimation_norm$counts[j]))
+  }
+  ISE2_n3[i] = integrate.xy(ordered_x, (func_est - func)^2)
+}
+
+# Calculate the mean of the ISE
+mean(ISE2_n3)
+
+
+
+################################### Logspline
+# Set the sample size
+n3 = 1000
+# Set a empty container
+ISE3_n3 = numeric()
+# Logspline density estimation
+for(i in 1:1000){ 
+  # Generate n1=250 data from normal distribution
+  data_mixturenormal = rnormMix(n3, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  
+  # Logspline 
+  logspline_estimation_norm = logspline(data_mixturenormal)
+  
+  # Logspline density estimation ISE 
+  func_est = dlogspline(data_mixturenormal, logspline_estimation_norm)
+  func = dnormMix(data_mixturenormal, mean1 = 5, sd1 = 1, mean2 = 9, sd2 = 1, p.mix = 0.5)
+  ISE3_n3[i] = integrate.xy(data_mixturenormal, (func_est - func)^2)  
+}
+
+```
+
+```{r,echo=FALSE}
+par(mfrow=c(1,3),oma=c(0,0,2,0))
+################################### Draw a box plot for Mix-normal distribution
+df = data.frame(ISE1_n1,ISE2_n1,ISE3_n1)
+boxplot(df, col=c("skyblue1","yellow1","pink1"), 
+        names = c("n=250","n=250","n=250"),
+        pars = list(boxwex = 0.5, staplewex = 0.5, outwex = 0.5),ylim=c(0,0.02))
+legend("topright", legend = c("kernel","histogram", "logspline"),
+       col = c("skyblue1","yellow1", "pink1"), lty = c(1, 1), cex = 0.5)
+
+
+
+df = data.frame(ISE1_n2,ISE2_n2,ISE3_n2)
+boxplot(df, col=c("skyblue1","yellow1","pink1"), 
+        names = c("n=500","n=500","n=500"),
+        pars = list(boxwex = 0.5, staplewex = 0.5, outwex = 0.5),ylim=c(0,0.02))
+legend("topright", legend = c("kernel","histogram", "logspline"),
+       col = c("skyblue1","yellow1", "pink1"), lty = c(1, 1), cex = 0.5)
+
+df = data.frame(ISE1_n3,ISE2_n3,ISE3_n3)
+boxplot(df, col=c("skyblue1","yellow1","pink1"), 
+        names = c("n=1000","n=1000","n=1000"),
+        pars = list(boxwex = 0.5, staplewex = 0.5, outwex = 0.5),ylim=c(0,0.02))
+legend("topright", legend = c("kernel","histogram", "logspline"),
+       col = c("skyblue1","yellow1", "pink1"), lty = c(1, 1), cex = 0.5)
+
+mtext("ISE plots for the Mix-normal data", line=0, side=3, outer=TRUE, cex=2)
+```
+
+It is still observed that the integrated squared errors (ISE) for sample size 250 are highest and as the sample sizes increase to 500 there is a significant reduction observed and finally at sample size 1000 we still observe a significant reduction, which confirms that as the sample size increases the error associated also reduces and the estimates tend to approach the true sample.
+
+And from the errors associated we can say that the logspline density estimator outperform the other competitors closely when the sample sizes are 500 and 1000 but when the sample size was 250 the kernel density estimator had the lowest ISE and in all cases the histogram had the highest calculated error. 
+
+\section{Conclusion}
+The models considered in this study are just 3 of a wide range of models, and from this report given the scenarios considered compete fairly hence any technique can be adopted for non-parametric modeling of data.
+
+\section{References}
